@@ -55,7 +55,7 @@ DARROW          =>
  */
 
 CLASS		?i:class
-ELSE		?i:if
+ELSE		?i:else
 FI		?i:fi
 IF		?i:if
 IN		?i:in
@@ -66,7 +66,7 @@ POOL		?i:pool
 THEN		?i:then
 WHILE		?i:while
 CASE		?i:case
-ESAC		?i:case
+ESAC		?i:esac
 OF		?i:of
 NEW		?i:new
 ISVOID		?i:isvoid
@@ -76,9 +76,11 @@ ISVOID		?i:isvoid
  */
 
 
-TRUE		(?-i:t)(?i:rue)
-FALSE		(?-i:f)(?i:alse)
-BOOL		{TRUE}|{FALSE}
+TRUE		t[Rr][Uu][Ee]
+FALSE		f[Aa][Ll][Ss][Ee]
+
+TYPEID		[A-Z][a-zA-Z0-9_]*
+OBJECTID	[a-z][a-zA-Z0-9_]*
 
 DIGIT		[0-9]
 CHAR		[A-Za-z]	
@@ -95,38 +97,34 @@ NOT		?i:not
   */
 {DARROW}		{ return (DARROW); }
 
-
-
-
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
 
-<INITIAL>{CLASS}        {  curr_lineno = yylineno;  return CLASS; }	
-<INITIAL>{ELSE}         {  curr_lineno = yylineno;  return ELSE;  }				
-<INITIAL>{FI}    		{  curr_lineno = yylineno;  return FI;    }	
-<INITIAL>{IF}           {  curr_lineno = yylineno;  return IF;    }				
-<INITIAL>{IN}		   	{  curr_lineno = yylineno;  return IN;    }	
-<INITIAL>{INHERITS}		{  curr_lineno = yylineno;  return INHERITS;  }		
-<INITIAL>{LET}			{  curr_lineno = yylineno;  return LET;   }
-<INITIAL>{LOOP}			{  curr_lineno = yylineno;  return LOOP;  }	
-<INITIAL>{POOL}      	{  curr_lineno = yylineno;  return POOL;  }	
-<INITIAL>{THEN}        	{  curr_lineno = yylineno;  return THEN;  }					
-<INITIAL>{WHILE}		{  curr_lineno = yylineno;  return WHILE; }	
-<INITIAL>{CASE}			{  curr_lineno = yylineno;  return CASE;  }	
-<INITIAL>{ESAC}			{  curr_lineno = yylineno;  return ESAC;  }	
-<INITIAL>{NEW}			{  curr_lineno = yylineno;  return NEW;   }
-<INITIAL>{ISVOID}		{  curr_lineno = yylineno;  return ISVOID;} 				
-<INITIAL>{OF}			{  curr_lineno = yylineno;  return OF;    }	
-<INITIAL>{NOT}          {  curr_lineno = yylineno;  return NOT;   }
-<INITIAL>{FALSE}	    {  cool_yylval.boolean = false;
-                                curr_lineno = yylineno;
-				return BOOL_CONST;}
-<INITIAL>{TRUE}			{  cool_yylval.boolean = true;
-                       		   curr_lineno = yylineno;
-				   return BOOL_CONST;}	
+{CLASS}			{ return CLASS; }	
+{ELSE}         	 	{ return ELSE; }				
+{FI}    		{ return FI; }	
+{IF}          		{ return IF; }				
+{IN}		   	{ return IN; }	
+{INHERITS}		{ return INHERITS; }		
+{LET}			{ return LET; }
+{LOOP}			{ return LOOP; }	
+{POOL}      		{ return POOL; }	
+{THEN}        	   	{ return THEN; }					
+{WHILE}		  	{ return WHILE; }	
+{CASE}			{ return CASE; }	
+{ESAC}			{ return ESAC; }	
+{NEW}			{ return NEW; }
+{ISVOID}		{ return ISVOID; } 				
+{OF}			{ return OF; }	
+{NOT}          		{ return NOT; }
 
+{TRUE}			{ yylval.boolean = true; return BOOL_CONST; }
+{FALSE}			{ yylval.boolean = false; return BOOL_CONST; }
+
+{TYPEID}		{ yylval.symbol = idtable.add_string(yytext); return (TYPEID); }
+{OBJECTID}		{ yylval.symbol = idtable.add_string(yytext); return (OBJECTID); }
 
  /*
   *  String constants (C syntax)
