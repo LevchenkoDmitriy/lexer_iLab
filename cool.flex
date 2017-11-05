@@ -87,6 +87,11 @@ OBJECTID	[a-z][a-zA-Z0-9_]*
 DIGIT		[0-9]
 CHAR		[A-Za-z]	
 NOT		?i:not
+
+SELFID         "self"
+SELF_TYPEID    "SELF_TYPE"
+
+WHITESPACE     [ \n\f\r\t\v]
 %%
 
  /*
@@ -168,10 +173,10 @@ NOT		?i:not
 {TRUE}			{ yylval.boolean = true; return BOOL_CONST; }
 {FALSE}			{ yylval.boolean = false; return BOOL_CONST; }
 
-{TYPEID}		{ yylval.symbol = idtable.add_string(yytext); return (TYPEID); }
-{OBJECTID}		{ yylval.symbol = idtable.add_string(yytext); return (OBJECTID); }
+{DIGIT}+              	{ cool_yylval.symbol = inttable.add_string(yytext); curr_lineno = yylineno; return INT_CONST; }
 
-[0-9]+              	{ cool_yylval.symbol = inttable.add_string(yytext); return INT_CONST; }
+					
+
 
  /*
   *  Operators
@@ -319,5 +324,20 @@ NOT		?i:not
                     return ERROR;
                 }
 
+
+<INITIAL>{TYPEID}       {  cool_yylval.symbol = stringtable.add_string(yytext); 
+                           curr_lineno = yylineno;                 
+                           return TYPEID;
+				        } 	
+<INITIAL>{OBJECTID}     {  cool_yylval.symbol = stringtable.add_string(yytext); 
+                           curr_lineno = yylineno;                 
+                           return OBJECTID;
+				        }
+			
+<INITIAL>{WHITESPACE}	{}
+
+
+
+<INITIAL>.              { curr_lineno = yylineno; cool_yylval.error_msg = yytext; return ERROR; }
 
 %%
