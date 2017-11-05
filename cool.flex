@@ -45,7 +45,7 @@ extern YYSTYPE cool_yylval;
 int cmnt = 0;
 %}
 
-%x COMMENT COMMENT_DASH STRING STRERROR
+%x COMMENT COMMENT_DASH STRERROR STRING
 
 /*
  * Define names for regular expressions here.
@@ -203,6 +203,121 @@ NOT		?i:not
   *  \n \t \b \f, the result is c.
   *
   */
+
+
+<INITIAL>\"     {
+                    strcpy(string_buf, "");
+                    BEGIN(STRING);
+                }
+<STRING>\"      {   
+                    BEGIN(INITIAL); 
+                    curr_lineno=yylineno;
+		    cool_yylval.symbol = stringtable.add_string(string_buf);
+		    return STR_CONST;
+                }
+
+<STRING>\\b     {  
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, "\b");
+                }
+<STRING>\\t     {  
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, "\t");
+                }                
+<STRING>\\n     {  
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, "\n");
+                }
+<STRING>\\f     {  
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, "\f");
+                }
+<STRING>\\\x00  {
+                    BEGIN(STRERROR);
+                    curr_lineno=yylineno;
+                    cool_yylval.error_msg = "String contains \0 symbol";
+                    return ERROR;
+                }
+<STRING>\\.     { 
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, yytext+1);
+                }                              
+                
+<STRING>\\\n    {  
+                    curr_lineno=yylineno;
+                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+                    {
+                        cool_yylval.error_msg = "String constant too long";
+                        BEGIN(STRERROR);
+                        return ERROR;
+                    }                                 
+                    strcat(string_buf, "\n");
+                }                
+<STRING>\n      {  
+                    BEGIN(INITIAL);
+                    curr_lineno=yylineno;
+                    cool_yylval.error_msg = "Unterminated string constant"; 
+                    return ERROR;
+                }
+
+<STRING>\x00	{ 
+                    BEGIN(STRERROR);
+                    curr_lineno=yylineno;
+                    cool_yylval.error_msg = "String contains null character.";
+                    return ERROR;
+                }    
+                    
+                 
+<STRING>([^"\\\n\x00])+     {  
+                                curr_lineno=yylineno;
+                                if(strlen(string_buf) + strlen(yytext) + 1 > MAX_STR_CONST)
+                                {  
+                                    cool_yylval.error_msg = "String constant too long";
+                                    BEGIN(STRERROR);
+                                    return (ERROR);
+                                }                                 
+                                strcat(string_buf, yytext);
+                            }
+<STRERROR>[^\\]\n    {BEGIN(INITIAL);}
+<STRERROR>\"         {BEGIN(INITIAL);}
+<STRERROR>.     {}
+<STRERROR>\n    {}
+<STRING><<EOF>> {
+                    curr_lineno = yylineno;
+                    cool_yylval.error_msg = "EOF in string constant";
+                    BEGIN(INITIAL);
+                    return ERROR;
+                }
 
 
 %%
