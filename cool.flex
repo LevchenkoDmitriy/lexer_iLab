@@ -42,8 +42,10 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
-
+int cmnt = 0;
 %}
+
+%x COMMENT COMMENT_DASH STRING STRERROR
 
 /*
  * Define names for regular expressions here.
@@ -92,6 +94,49 @@ NOT		?i:not
   */
 
 
+
+<INITIAL>--             {BEGIN(COMMENT_DASH);}
+
+<COMMENT_DASH><<EOF>>   { curr_lineno = yylineno;
+                          yyterminate();
+                        }
+<COMMENT_DASH>[\n]      { curr_lineno = yylineno;
+                          BEGIN(INITIAL);
+                        }
+<COMMENT_DASH>[^\n]     {}
+
+
+<INITIAL>"(*"           { BEGIN(COMMENT);
+                          cmnt++;
+                        }
+
+<INITIAL>"*)"           {
+                          curr_lineno = yylineno;
+                          cool_yylval.error_msg = "Unmatched *)";
+                          return ERROR;
+                        }
+
+<COMMENT>"("+"*"        {  cmnt++;
+                        }
+
+<COMMENT>"*"+")"        {  cmnt--;
+                           if (cmnt==0)
+                           {
+                              BEGIN(INITIAL);
+                           }
+                        }
+
+<COMMENT>[^*(]|"("[^*]|"*"[^)] {}
+
+<COMMENT><<EOF>>        {
+                            curr_lineno = yylineno;
+                            cool_yylval.error_msg = "EOF in comment";
+                            BEGIN(INITIAL);
+                            return ERROR;
+                        }
+
+
+
  /*
   *  The multiple-character operators.
   */
@@ -125,6 +170,8 @@ NOT		?i:not
 
 {TYPEID}		{ yylval.symbol = idtable.add_string(yytext); return (TYPEID); }
 {OBJECTID}		{ yylval.symbol = idtable.add_string(yytext); return (OBJECTID); }
+
+[0-9]+              	{ cool_yylval.symbol = inttable.add_string(yytext); return INT_CONST; }
 
  /*
   *  String constants (C syntax)
