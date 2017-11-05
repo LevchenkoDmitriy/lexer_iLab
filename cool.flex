@@ -78,7 +78,7 @@ ISVOID		?i:isvoid
 
 TRUE		(?-i:t)(?i:rue)
 FALSE		(?-i:f)(?i:alse)
-BOOL_CONST	{TRUE|FALSE}
+BOOL		{TRUE}|{FALSE}
 
 DIGIT		[0-9]
 CHAR		[A-Za-z]	
@@ -98,11 +98,34 @@ NOT		?i:not
 
 
 
-
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
+
+<INITIAL>{CLASS}        {  curr_lineno = yylineno;  return CLASS; }	
+<INITIAL>{ELSE}         {  curr_lineno = yylineno;  return ELSE;  }				
+<INITIAL>{FI}    		{  curr_lineno = yylineno;  return FI;    }	
+<INITIAL>{IF}           {  curr_lineno = yylineno;  return IF;    }				
+<INITIAL>{IN}		   	{  curr_lineno = yylineno;  return IN;    }	
+<INITIAL>{INHERITS}		{  curr_lineno = yylineno;  return INHERITS;  }		
+<INITIAL>{LET}			{  curr_lineno = yylineno;  return LET;   }
+<INITIAL>{LOOP}			{  curr_lineno = yylineno;  return LOOP;  }	
+<INITIAL>{POOL}      	{  curr_lineno = yylineno;  return POOL;  }	
+<INITIAL>{THEN}        	{  curr_lineno = yylineno;  return THEN;  }					
+<INITIAL>{WHILE}		{  curr_lineno = yylineno;  return WHILE; }	
+<INITIAL>{CASE}			{  curr_lineno = yylineno;  return CASE;  }	
+<INITIAL>{ESAC}			{  curr_lineno = yylineno;  return ESAC;  }	
+<INITIAL>{NEW}			{  curr_lineno = yylineno;  return NEW;   }
+<INITIAL>{ISVOID}		{  curr_lineno = yylineno;  return ISVOID;} 				
+<INITIAL>{OF}			{  curr_lineno = yylineno;  return OF;    }	
+<INITIAL>{NOT}          {  curr_lineno = yylineno;  return NOT;   }
+<INITIAL>{FALSE}	    {  cool_yylval.boolean = false;
+                                curr_lineno = yylineno;
+				return BOOL_CONST;}
+<INITIAL>{TRUE}			{  cool_yylval.boolean = true;
+                       		   curr_lineno = yylineno;
+				   return BOOL_CONST;}	
 
 
  /*
