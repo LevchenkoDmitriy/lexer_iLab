@@ -102,10 +102,11 @@ WHITESPACE     [ \n\f\r\t\v]
 
 <INITIAL>--             {BEGIN(COMMENT_DASH);}
 
-<COMMENT_DASH><<EOF>>   { curr_lineno = yylineno;
+<COMMENT_DASH><<EOF>>   {
                           yyterminate();
                         }
-<COMMENT_DASH>[\n]      { curr_lineno = yylineno;
+<COMMENT_DASH>[\n]      {
+			  ++curr_lineno;
                           BEGIN(INITIAL);
                         }
 <COMMENT_DASH>[^\n]     {}
@@ -116,7 +117,6 @@ WHITESPACE     [ \n\f\r\t\v]
                         }
 
 <INITIAL>"*)"           {
-                          curr_lineno = yylineno;
                           cool_yylval.error_msg = "Unmatched *)";
                           return ERROR;
                         }
@@ -131,10 +131,12 @@ WHITESPACE     [ \n\f\r\t\v]
                            }
                         }
 
+<COMMENT>[\n]      	{ ++curr_lineno;}
+<COMMENT>[\\\n]		{ ++curr_lineno;}
+
 <COMMENT>[^*(]|"("[^*]|"*"[^)] {}
 
 <COMMENT><<EOF>>        {
-                            curr_lineno = yylineno;
                             cool_yylval.error_msg = "EOF in comment";
                             BEGIN(INITIAL);
                             return ERROR;
@@ -173,7 +175,7 @@ WHITESPACE     [ \n\f\r\t\v]
 {TRUE}			{ yylval.boolean = true; return BOOL_CONST; }
 {FALSE}			{ yylval.boolean = false; return BOOL_CONST; }
 
-{DIGIT}+              	{ cool_yylval.symbol = inttable.add_string(yytext); curr_lineno = yylineno; return INT_CONST; }
+{DIGIT}+              	{ cool_yylval.symbol = inttable.add_string(yytext); return INT_CONST; }
 
 					
 
@@ -215,15 +217,13 @@ WHITESPACE     [ \n\f\r\t\v]
                     BEGIN(STRING);
                 }
 <STRING>\"      {   
-                    BEGIN(INITIAL); 
-                    curr_lineno=yylineno;
+                    BEGIN(INITIAL);
 		    cool_yylval.symbol = stringtable.add_string(string_buf);
 		    return STR_CONST;
                 }
 
-<STRING>\\b     {  
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\b     { 
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
@@ -231,9 +231,8 @@ WHITESPACE     [ \n\f\r\t\v]
                     }                                 
                     strcat(string_buf, "\b");
                 }
-<STRING>\\t     {  
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\t     { 
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
@@ -241,19 +240,18 @@ WHITESPACE     [ \n\f\r\t\v]
                     }                                 
                     strcat(string_buf, "\t");
                 }                
-<STRING>\\n     {  
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\n     {   ++curr_lineno; 
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
                         return ERROR;
-                    }                                 
+                    }          
+                      
                     strcat(string_buf, "\n");
                 }
-<STRING>\\f     {  
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\f     { 
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
@@ -263,13 +261,11 @@ WHITESPACE     [ \n\f\r\t\v]
                 }
 <STRING>\\\x00  {
                     BEGIN(STRERROR);
-                    curr_lineno=yylineno;
                     cool_yylval.error_msg = "String contains \0 symbol";
                     return ERROR;
                 }
-<STRING>\\.     { 
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\.     {
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
@@ -278,33 +274,30 @@ WHITESPACE     [ \n\f\r\t\v]
                     strcat(string_buf, yytext+1);
                 }                              
                 
-<STRING>\\\n    {  
-                    curr_lineno=yylineno;
-                    if(strlen(string_buf) + 1 + 1 > MAX_STR_CONST)
+<STRING>\\\n    {   ++curr_lineno; 
+                    if(strlen(string_buf)+2 > MAX_STR_CONST)
                     {
                         cool_yylval.error_msg = "String constant too long";
                         BEGIN(STRERROR);
                         return ERROR;
-                    }                                 
+                    }           
+                     
                     strcat(string_buf, "\n");
                 }                
-<STRING>\n      {  
+<STRING>\n      {   ++curr_lineno;
                     BEGIN(INITIAL);
-                    curr_lineno=yylineno;
                     cool_yylval.error_msg = "Unterminated string constant"; 
                     return ERROR;
                 }
 
 <STRING>\x00	{ 
                     BEGIN(STRERROR);
-                    curr_lineno=yylineno;
                     cool_yylval.error_msg = "String contains null character.";
                     return ERROR;
                 }    
                     
                  
-<STRING>([^"\\\n\x00])+     {  
-                                curr_lineno=yylineno;
+<STRING>([^"\\\n\x00])+     {
                                 if(strlen(string_buf) + strlen(yytext) + 1 > MAX_STR_CONST)
                                 {  
                                     cool_yylval.error_msg = "String constant too long";
@@ -313,31 +306,23 @@ WHITESPACE     [ \n\f\r\t\v]
                                 }                                 
                                 strcat(string_buf, yytext);
                             }
-<STRERROR>[^\\]\n    {BEGIN(INITIAL);}
+<STRERROR>[^\\]\n    {++curr_lineno; BEGIN(INITIAL);}
 <STRERROR>\"         {BEGIN(INITIAL);}
 <STRERROR>.     {}
-<STRERROR>\n    {}
-<STRING><<EOF>> {
-                    curr_lineno = yylineno;
-                    cool_yylval.error_msg = "EOF in string constant";
-                    BEGIN(INITIAL);
-                    return ERROR;
+<STRERROR>\n    {++curr_lineno;}
+<STRING><<EOF>> { cool_yylval.error_msg = "EOF in string constant";
+                  BEGIN(INITIAL);
+                   return ERROR;
                 }
 
 
-<INITIAL>{TYPEID}       {  cool_yylval.symbol = stringtable.add_string(yytext); 
-                           curr_lineno = yylineno;                 
-                           return TYPEID;
-				        } 	
-<INITIAL>{OBJECTID}     {  cool_yylval.symbol = stringtable.add_string(yytext); 
-                           curr_lineno = yylineno;                 
-                           return OBJECTID;
-				        }
-			
-<INITIAL>{WHITESPACE}	{}
+<INITIAL>{TYPEID}       {  cool_yylval.symbol = stringtable.add_string(yytext);               
+                           return TYPEID; } 	
+<INITIAL>{OBJECTID}     {  cool_yylval.symbol = stringtable.add_string(yytext);              
+                           return OBJECTID; }
+<INITIAL>[\t\v\f\r ]+    ;
 
-
-
-<INITIAL>.              { curr_lineno = yylineno; cool_yylval.error_msg = yytext; return ERROR; }
+<INITIAL>\n		{++curr_lineno;}
+<INITIAL>.              { cool_yylval.error_msg = yytext; return ERROR; }
 
 %%
